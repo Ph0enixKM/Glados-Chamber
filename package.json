@@ -1,0 +1,34 @@
+{
+  "name": "glados-chamber",
+  "version": "1.0.0",
+  "description": "Simple unit testing library",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "src/main.js",
+    "test": "glados"
+  },
+  "bin": {
+    "glados": "src/main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ph0enixKM/Glados-Chamber.git"
+  },
+  "keywords": [
+    "glados",
+    "chamber"
+  ],
+  "author": "Paweł Karaś",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Ph0enixKM/Glados-Chamber/issues"
+  },
+  "homepage": "https://github.com/Ph0enixKM/Glados-Chamber#readme",
+  "dependencies": {
+    "chalk": "^4.0.0",
+    "parcel-bundler": "^1.12.4"
+  },
+  "devDependencies": {
+    "typescript": "^3.8.3"
+  }
+}
