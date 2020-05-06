@@ -4,9 +4,11 @@
 
 # Glados Chamber
 
-It's a tiny testing library that gives you the flexibility to quickly perform needed tests of your package, framework, library or app.
+It's a tiny testing library that gives you the flexibility to quickly perform needed tests of your package, framework, library or app. This library is inspierd by jest which came out to be too overengineered for my needs. When I think of performing tests - I instantly imagine Glados. Hence the name
 
-
+<div align="center">
+ <img src="arts/ss1.png">
+</div>
 
 ## Installation
 
@@ -41,10 +43,17 @@ fail('It must fail...', () => throw 'Failed!')
 succeed('It must succeed...', () => 15)
 ```
 
-Besides of the testing function there are available helper function that can help you in creation process
+Besides of the testing functions there are available helper functions that can help you in testing process.
 
 ```js
 log(`Value returned: ${variable}`)
 warn('Remember to run ./script.sh before testing!')
-
 ```
+
+Here is some sample error case:
+
+<div align="center">
+ <img src="arts/ss.png">
+</div>
+
+
