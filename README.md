@@ -10,13 +10,13 @@ It's a tiny testing library that gives you the flexibility to quickly perform ne
  <img src="arts/ss1.png">
 </div>
 
-## Installation
+## Installation 🔧
 
 ```bash
 npm install glados-chamber -g
 ```
 
-## Usage
+## Usage ⚙️
 
 ```bash
 glados path/to/file.js
