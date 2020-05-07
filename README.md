@@ -19,8 +19,11 @@ npm install glados-chamber -g
 ## Usage ⚙️
 
 ```bash
-glados path/to/file.js
+glados path/to/file.js --voice
 ```
+
+If you wish to not play Glados voice when testing
+simply remove `--voice` flag from the snippet above
 
 **file.js**
 
@@ -55,5 +58,3 @@ Here is some sample error case:
 <div align="center">
  <img src="arts/ss.png">
 </div>
-
-

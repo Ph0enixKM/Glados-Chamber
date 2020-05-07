@@ -4,8 +4,8 @@
   "description": "Simple unit testing library",
   "main": "src/main.js",
   "scripts": {
-    "start": "src/main.js",
-    "test": "glados"
+    "start": "src/main.js src/file.js --voice",
+    "test": "glados file.js --voice"
   },
   "bin": {
     "glados": "src/main.js"
@@ -16,7 +16,8 @@
   },
   "keywords": [
     "glados",
-    "chamber"
+    "chamber",
+    "test"
   ],
   "author": "Paweł Karaś",
   "license": "ISC",
@@ -26,9 +27,6 @@
   "homepage": "https://github.com/Ph0enixKM/Glados-Chamber#readme",
   "dependencies": {
     "chalk": "^4.0.0",
-    "parcel-bundler": "^1.12.4"
+    "play-sound": "^1.1.3"
   },
-  "devDependencies": {
-    "typescript": "^3.8.3"
-  }
 }
