@@ -51,7 +51,13 @@ Besides of the testing functions there are available helper functions that can h
 ```js
 log(`Value returned: ${variable}`)
 warn('Remember to run ./script.sh before testing!')
+alert('This alert will show up no matter what (even with --production)')
 ```
+
+<div align="center">
+ <img src="arts/ss3.png"><br>
+ <i>(Testing functions in the terminal)</i>
+</div>
 
 ### Flags
 
@@ -181,5 +187,3 @@ glad.fail('Test', () => {throw ''})
     <img src="arts/ss2.png"><br>
     <i>(Dev Mode terminal output)</i>
 </div>
-
-

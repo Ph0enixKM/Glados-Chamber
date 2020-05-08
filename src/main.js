@@ -21,147 +21,11 @@ let args = {
 }
 
 let devMode = false
+let cliMode = false
 
 // Hidden functionalities
 args.__proto__.save = () => {}
 args.__proto__.restore = () => {}
-
-if (require.main === module) {
-    // Parse Arguments
-    for (const arg of process.argv.slice(2)) {
-        if (arg.slice(0, 2) === '--') {
-            if (arg.slice(2, 5) === 'no-'){
-                args[arg.slice(5)] = false
-            }
-            else {
-                args[arg.slice(2)] = true
-            }
-        }
-        else {
-            loc = arg
-        }
-    }
-    cli()
-}
-
-// Show error when something is wrong
-function error({title, reason, text, code}) {
-    console.log(ctx.hex('#000').bold.bgRed('️ ERROR '), chalk.dim.red(title || 'Something went wrong'))
-    if (reason)
-        console.log(chalk.red('\n\tReason:'), chalk.dim.red(reason), (text) ? '': '\n')
-    if (text)
-        console.log(chalk.dim.red(`\t${text}\n`))
-    if (code == null) code = 1
-    process.exitCode = code
-    if (args['error-quit'])
-        process.exit(code)
-}
-
-// Show success when something succeeded
-function success({title}) {
-    if (args.silent && !devMode) return null
-    console.log(chalk.green(' ✓'), chalk.dim.green(title || 'Done'))
-}
-
-// Create a new testing schema
-function create(exec) {
-    return (title, ...argv) => {
-        if (args.production) return null
-        const suc = (arg = {}) => success(Object.assign({title}, arg))
-        const err = (arg = {}, text) => {
-            if (typeof arg === 'string') {
-                arg = { reason: arg }
-            }
-            if (typeof text === 'string') {
-                arg.text = text
-            }
-            error(Object.assign({title}, arg))
-        }
-        const func = exec(suc, err, title)
-        if (devMode) console.log(`\n${trace(true)}`)
-        return func(...argv)
-    }
-}
-
-// Trace location
-function trace(style = false) {
-    const filename = /[\\\/]([^\\\/]+)$/.exec(stackTrace.get()[2].getFileName())[1]
-    const line = stackTrace.get()[2].getLineNumber()
-    if (style) return chalk.gray(`(${filename}:${line})`)
-    return [filename, line]
-}
-
-// Toggle dev mode
-function dev(bool) {
-    if (bool == null)
-        throw 'Bad parameter passed when trying to toggle dev mode (Glados)'
-    if (bool) {
-        console.log(chalk.gray(`Started Dev Mode (${trace().join(':')})`))
-        devMode = true
-    }
-    else {
-        console.log(chalk.gray(`Stopped Dev Mode (${trace().join(':')})`))
-        devMode = false
-    }
-}
-
-// Run this in CLI
-function cli() {
-
-    // When there is no file provided
-    if (!loc.length) {
-        error({
-            title: 'Bad Input',
-            reason: 'Please, provide path to testing file\n',
-            code: 2
-        })
-    }
-
-
-    // Get absolute path to the script
-    loc = path.join(process.env.PWD, loc)
-
-    // Spit error when script does not exist
-    if (!fs.existsSync(loc)) {
-        error({
-            title: 'Bad Input',
-            reason: 'Filepath does not exist',
-            text: loc,
-            code: 2
-        })
-    }
-
-    // Run script
-    let script = fs.readFileSync(loc, 'utf-8')
-    console.log(ctx.hex('#000').bold.bgYellow('️ START '), chalk.yellow('Opening chamberlock...\n'))
-
-    if (args.production) {
-        alert('Production flag is on - no tests are going to perform\n')
-    }
-
-    eval(script)
-}
-
-// Play Glados voiceline
-function say(type) {
-    if (!args.voice) return null
-    // Proceed to saying something
-    if (type === 'start') {
-        const index = Math.floor(Math.random() * 5) + 1
-        player.play(path.join(__dirname, `/audio/start/start${index}.wav`), () => {})
-    }
-    else if (type === 'success') {
-        const index = Math.floor(Math.random() * 5) + 1
-        player.play(path.join(__dirname, `/audio/success/success${index}.wav`), () => {})
-    }
-    else if (type === 'error') {
-        const index = Math.floor(Math.random() * 5) + 1
-        player.play(path.join(__dirname, `/audio/error/error${index}.wav`), () => {})
-    }
-    else if (type === 'file') {
-        player.play(path.join(__dirname, `/audio/error/file.wav`), () => {})
-    }
-}
 
 
 // --- API ---
@@ -229,20 +93,183 @@ const fail = create((success, error) => {
     }
 })
 
+
+// --- CLI ---
+
+if (require.main === module) {
+    // Parse Arguments
+    for (const arg of process.argv.slice(2)) {
+        if (arg.slice(0, 2) === '--') {
+            if (arg.slice(2, 5) === 'no-'){
+                args[arg.slice(5)] = false
+            }
+            else {
+                args[arg.slice(2)] = true
+            }
+        }
+        else {
+            loc = arg
+        }
+    }
+    cliMode = true
+    cli()
+}
+
+// --- STD ---
+
+// Show error when something is wrong
+function error({title, reason, text, code}) {
+    console.log(ctx.hex('#000').bold.bgRed('️ ERROR '), chalk.dim.red(title || 'Something went wrong'))
+    if (reason)
+        console.log(chalk.red('\n\tReason:'), chalk.dim.red(reason), (text) ? '': '\n')
+    if (text)
+        console.log(chalk.dim.red(`\t${text}\n`))
+    if (code == null) code = 1
+    process.exitCode = code
+    if (args['error-quit'])
+        process.exit(code)
+}
+
+// Show success when something succeeded
+function success({title}) {
+    if (args.silent && !devMode) return null
+    console.log(chalk.green(' ✓'), chalk.dim.green(title || 'Done'))
+}
+
+// Create a new testing schema
+function create(exec) {
+    return (title, ...argv) => {
+        if (args.production) return null
+        const suc = (arg = {}) => success(Object.assign({title}, arg))
+        const err = (arg = {}, text) => {
+            if (typeof arg === 'string') {
+                arg = { reason: arg }
+            }
+            if (typeof text === 'string') {
+                arg.text = text
+            }
+            error(Object.assign({title}, arg))
+        }
+        const func = exec(suc, err, title)
+        if (devMode) console.log(`\n${trace(true)}`)
+        return func(...argv)
+    }
+}
+
+
+// --- DEV ---
+
+
+// Trace location
+function trace(style = false) {
+    let pathreg = /[\\\/]([^\\\/]+)$/
+    let filename = ''
+    let line = 0
+    if (cliMode) {
+        filename = pathreg.exec(loc)[1]
+        line = stackTrace.get()[2].getLineNumber()
+    }
+    else {
+        filename = pathreg.exec(stackTrace.get()[2].getFileName())[1]
+        line = stackTrace.get()[2].getLineNumber()
+
+    }
+    if (style) return chalk.gray(`(${filename}:${line})${(cliMode) ? ' [cli]': ''}`)
+    return [filename, line]
+}
+
+// Toggle dev mode
+function dev(bool) {
+    if (bool == null)
+        throw 'Bad parameter passed when trying to toggle dev mode (Glados)'
+    if (bool) {
+        console.log(chalk.gray(`Started Dev Mode ${trace(true)}`))
+        devMode = true
+    }
+    else {
+        console.log(chalk.gray(`Stopped Dev Mode ${trace(true)}`))
+        devMode = false
+    }
+}
+
+// Run this in CLI
+function cli() {
+
+    // When there is no file provided
+    if (!loc.length) {
+        error({
+            title: 'Bad Input',
+            reason: 'Please, provide path to testing file\n',
+            code: 2
+        })
+    }
+
+
+    // Get absolute path to the script
+    loc = path.join(process.env.PWD, loc)
+
+    // Spit error when script does not exist
+    if (!fs.existsSync(loc)) {
+        error({
+            title: 'Bad Input',
+            reason: 'Filepath does not exist',
+            text: loc,
+            code: 2
+        })
+    }
+
+    // Run script
+    let script = fs.readFileSync(loc, 'utf-8')
+    console.log(ctx.hex('#000').bold.bgYellow('️ START '), chalk.yellow('Opening chamberlock...\n'))
+
+    if (args.production) {
+        alert('Production flag is on - no tests are going to perform\n')
+    }
+
+    eval(script)
+}
+
+// Play Glados voiceline
+function say(type) {
+    if (!args.voice) return null
+    // Proceed to saying something
+    if (type === 'start') {
+        const index = Math.floor(Math.random() * 5) + 1
+        player.play(path.join(__dirname, `/audio/start/start${index}.wav`), () => {})
+    }
+    else if (type === 'success') {
+        const index = Math.floor(Math.random() * 5) + 1
+        player.play(path.join(__dirname, `/audio/success/success${index}.wav`), () => {})
+    }
+    else if (type === 'error') {
+        const index = Math.floor(Math.random() * 5) + 1
+        player.play(path.join(__dirname, `/audio/error/error${index}.wav`), () => {})
+    }
+    else if (type === 'file') {
+        player.play(path.join(__dirname, `/audio/error/file.wav`), () => {})
+    }
+}
+
+
+
+
 // Log information
 function log(value) {
     if (args.production || args.silent) return null
+    if (devMode) console.log(`\n${trace(true)}`)
     console.log(chalk.blue(' ℹ'), chalk.dim.blue(value))
 }
 
 // Prompt a warning
 function warn(value) {
     if (args.production || args.silent) return null
+    if (devMode) console.log(`\n${trace(true)}`)
     console.log(chalk.yellow(' ⚠'), chalk.yellow(value))
 }
 
 // Prompt a warning
 function alert(value) {
+    if (devMode) console.log(`\n${trace(true)}`)
     console.log(ctx.hex('#000').bold.bgKeyword('orange')('️ ALERT '), ctx.keyword('orange')(value))
 }
 
