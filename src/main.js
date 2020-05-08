@@ -191,6 +191,15 @@ function dev(bool) {
 // Run this in CLI
 function cli() {
 
+    // Module resolution
+    const req = require
+    require = (module) => {
+        if (module[0] === '.') {
+            return req(path.join(process.env.PWD, module))
+        }
+        else return req(module)
+    }
+
     // When there is no file provided
     if (!loc.length) {
         error({
