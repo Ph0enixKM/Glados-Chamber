@@ -6,20 +6,140 @@ const fs = require('fs')
 const path = require('path')
 const ctx = new chalk.Instance({level: 3})
 const player = require('play-sound')(opts = {})
+const stackTrace = require('stack-trace')
 
-const args = {
-    voice: false
+let loc = ''
+
+let backup = {}
+
+let args = {
+    voice: false,
+    applause: true,
+    'error-quit': true,
+    production: false,
+    silent: false
 }
 
-// Parse Arguments
-let loc = ''
-for (const arg of process.argv.slice(2)) {
-    if (arg.slice(0, 2) === '--') {
-        args[arg.slice(2)] = true
+let devMode = false
+
+// Hidden functionalities
+args.__proto__.save = () => {}
+args.__proto__.restore = () => {}
+
+if (require.main === module) {
+    // Parse Arguments
+    for (const arg of process.argv.slice(2)) {
+        if (arg.slice(0, 2) === '--') {
+            if (arg.slice(2, 5) === 'no-'){
+                args[arg.slice(5)] = false
+            }
+            else {
+                args[arg.slice(2)] = true
+            }
+        }
+        else {
+            loc = arg
+        }
+    }
+    cli()
+}
+
+// Show error when something is wrong
+function error({title, reason, text, code}) {
+    console.log(ctx.hex('#000').bold.bgRed('️ ERROR '), chalk.dim.red(title || 'Something went wrong'))
+    if (reason)
+        console.log(chalk.red('\n\tReason:'), chalk.dim.red(reason), (text) ? '': '\n')
+    if (text)
+        console.log(chalk.dim.red(`\t${text}\n`))
+    if (code == null) code = 1
+    process.exitCode = code
+    if (args['error-quit'])
+        process.exit(code)
+}
+
+// Show success when something succeeded
+function success({title}) {
+    if (args.silent && !devMode) return null
+    console.log(chalk.green(' ✓'), chalk.dim.green(title || 'Done'))
+}
+
+// Create a new testing schema
+function create(exec) {
+    return (title, ...argv) => {
+        if (args.production) return null
+        const suc = (arg = {}) => success(Object.assign({title}, arg))
+        const err = (arg = {}, text) => {
+            if (typeof arg === 'string') {
+                arg = { reason: arg }
+            }
+            if (typeof text === 'string') {
+                arg.text = text
+            }
+            error(Object.assign({title}, arg))
+        }
+        const func = exec(suc, err, title)
+        if (devMode) console.log(`\n${trace(true)}`)
+        return func(...argv)
+    }
+}
+
+// Trace location
+function trace(style = false) {
+    const filename = /[\\\/]([^\\\/]+)$/.exec(stackTrace.get()[2].getFileName())[1]
+    const line = stackTrace.get()[2].getLineNumber()
+    if (style) return chalk.gray(`(${filename}:${line})`)
+    return [filename, line]
+}
+
+// Toggle dev mode
+function dev(bool) {
+    if (bool == null)
+        throw 'Bad parameter passed when trying to toggle dev mode (Glados)'
+    if (bool) {
+        console.log(chalk.gray(`Started Dev Mode (${trace().join(':')})`))
+        devMode = true
     }
     else {
-        loc = arg
+        console.log(chalk.gray(`Stopped Dev Mode (${trace().join(':')})`))
+        devMode = false
     }
+}
+
+// Run this in CLI
+function cli() {
+
+    // When there is no file provided
+    if (!loc.length) {
+        error({
+            title: 'Bad Input',
+            reason: 'Please, provide path to testing file\n',
+            code: 2
+        })
+    }
+
+
+    // Get absolute path to the script
+    loc = path.join(process.env.PWD, loc)
+
+    // Spit error when script does not exist
+    if (!fs.existsSync(loc)) {
+        error({
+            title: 'Bad Input',
+            reason: 'Filepath does not exist',
+            text: loc,
+            code: 2
+        })
+    }
+
+    // Run script
+    let script = fs.readFileSync(loc, 'utf-8')
+    console.log(ctx.hex('#000').bold.bgYellow('️ START '), chalk.yellow('Opening chamberlock...\n'))
+
+    if (args.production) {
+        alert('Production flag is on - no tests are going to perform\n')
+    }
+
+    eval(script)
 }
 
 // Play Glados voiceline
@@ -43,124 +163,134 @@ function say(type) {
     }
 }
 
-// When there is no file provided
-if (!loc.length) {
-    console.log(ctx.hex('#000').bold.bgRed('️ ERROR '), chalk.dim.red('Bad Input'))
-    console.log(chalk.red('\n\tReason:'), chalk.dim.red(`Please, provide path to testing file\n`))
-    say('file')
-    process.exit(-1)
-}
+
+// --- API ---
 
 
-// Get absolute path to the script
-loc = path.join(process.env.PWD, loc)
-
-// Spit error when script does not exist
-if (!fs.existsSync(loc)) {
-    console.log(ctx.hex('#000').bold.bgRed('️ ERROR '), chalk.dim.red('Bad Input'))
-    console.log(chalk.red('\n\tReason:'), chalk.dim.red(`Filepath does not exist`))
-    console.log(chalk.dim.red(`	 ${loc}\n`))
-    say('file')
-    process.exit(-1)
-}
-
-// Run script
-let script = fs.readFileSync(loc, 'utf-8')
-console.log(ctx.hex('#000').bold.bgYellow('️ START '), chalk.yellow('Opening chamberlock...\n'))
-start()
-
-async function start() {
-
-    eval(script)
-
-    // --- API ---
-
-    // Math results to be the same
-    function equal(title, value, expected) {
-        if (value === expected) {
-            console.log(chalk.green(' ✔️'), chalk.dim.green(title))
+// Match results to be the same
+const equal = create((success, error) => {
+    return (...args) => {
+        let item = args[0]
+        for (const arg of args) {
+            if (arg === item) item = arg
+            else return error(`Given values don't match: ${args.join(', ')}`)
         }
-        else {
-            console.log(ctx.hex('#000').bold.bgRed('️ ERROR '), chalk.dim.red(title))
-            console.log(chalk.red('\n\tReason:'), chalk.dim.red(`${value} is not the same as ${expected}\n`))
-            say('error')
-            process.exit(-1)
-        }
+        success()
     }
+})
 
-    // Math results to not be the same
-    function nequal(title, value, expected) {
-        if (value !== expected) {
-            console.log(chalk.green(' ✔️'), chalk.dim.green(title))
+// Match results to not be the same
+const nequal = create((success, error) => {
+    return (...args) => {
+        let item = null
+        if (args[0] === null) item = undefined
+        for (const arg of args) {
+            if (arg !== item) item = arg
+            else return error(`Given values do match: ${args.join(', ')}`)
         }
-        else {
-            console.log(ctx.hex('#000').bold.bgRed('️ ERROR '), chalk.dim.red(title))
-            console.log(chalk.red('\n\tReason:'), chalk.dim.red(`${value} is not the same as ${expected}\n`))
-            say('error')
-            process.exit(-1)
-        }
+        success()
     }
+})
 
-    // Test result to return true
-    function test(title, callback) {
+// // Test result to return true
+const test = create((success, error) => {
+    return callback => {
         const value = callback()
-        if (value) {
-            console.log(chalk.green(' ✔️'), chalk.dim.green(title))
-        }
-        else {
-            console.log(ctx.hex('#000').bold.bgRed('️ ERROR '), chalk.dim.red(title))
-            console.log(chalk.red('\n\tReason:'), chalk.dim.red(`Test didn\'t return true value`))
-            console.log(chalk.dim.red(`\tReturned: ${value}\n`))
-            say('error')
-            process.exit(-1)
-        }
+        if (value)
+            success()
+        else
+            error('Test didn\'t return true value')
     }
+})
 
-    // If codeblock ran well
-    function succeed(title, callback) {
+// If codeblock ran well
+const succeed = create((success, error) => {
+    return callback => {
         try {
             callback()
-            console.log(chalk.green(' ✔️'), chalk.dim.green(title))
+            success()
         }
         catch (e) {
-            console.log(ctx.hex('#000').bold.bgRed('️ ERROR '), chalk.dim.red(title))
-            console.log(chalk.red('\n\tReason:'), chalk.dim.red(`Executed code didn\'t succeed\n`))
-            say('error')
-            process.exit(-1)
+            error('Executed code didn\'t succeed')
         }
     }
+})
 
-    // If codeblock failed with exception
-    function fail(title, callback) {
+// If codeblock failed with exception
+const fail = create((success, error) => {
+    return callback => {
         try {
             callback()
-            console.log(ctx.hex('#000').bold.bgRed('️ ERROR '), chalk.dim.red(title))
-            console.log(chalk.red('\n\tReason:'), chalk.dim.red(`Executed code didn\'t fail\n`))
-            say('error')
-            process.exit(-1)
+            error('Executed code didn\'t fail')
         }
         catch (e) {
-            console.log(chalk.green(' ✔️'), chalk.dim.green(title))
+            success()
         }
     }
+})
 
-    // Log information
-    function log(value) {
-        console.log(chalk.blue(' ℹ'), chalk.dim.blue(value))
-    }
+// Log information
+function log(value) {
+    if (args.production || args.silent) return null
+    console.log(chalk.blue(' ℹ'), chalk.dim.blue(value))
+}
 
-    // Prompt a warning
-    function warn(value) {
-        console.log(chalk.yellow(' ⚠'), chalk.yellow(value))
-    }
+// Prompt a warning
+function warn(value) {
+    if (args.production || args.silent) return null
+    console.log(chalk.yellow(' ⚠'), chalk.yellow(value))
+}
 
-    // On exit sum up success
-    process.on('exit', (code) => {
-        if (code === 0) {
-            console.log(chalk.green('\nDone 🎉'))
-            console.log(chalk.green('All tests passed\n'))
-            say('success')
+// Prompt a warning
+function alert(value) {
+    console.log(ctx.hex('#000').bold.bgKeyword('orange')('️ ALERT '), ctx.keyword('orange')(value))
+}
+
+// Change confguration of glados
+function config(obj) {
+    let prox = new Proxy(args, {
+        get(obj, prop) {
+            prop = prop.replace(/([A-Z])/g, (match, group) => {
+                return '-' + group.toLowerCase()
+            })
+            return obj[prop]
+        },
+        set(obj, prop, value) {
+            prop = prop.replace(/([A-Z])/g, (match, group) => {
+                return '-' + group.toLowerCase()
+            })
+            obj[prop] = value
+            return true
         }
     })
+    Object.assign(prox, obj)
+    return prox
+}
 
+// On exit sum up success
+process.on('exit', (code) => {
+    if (code === 0) {
+        if (!args.applause) return null
+        if (args.silent) return null
+        if (args.production) return null
+        say('success')
+        console.log(chalk.green('\nDone 🎉'))
+        console.log(chalk.green('All tests passed\n'))    
+    }
+    if (code == 1) say('error')
+    if (code == 2) say('file')
+})
+
+module.exports = {
+    equal,
+    nequal,
+    test,
+    succeed,
+    fail,
+    log,
+    warn,
+    alert,
+    config,
+    create,
+    dev
 }
