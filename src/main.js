@@ -23,10 +23,6 @@ let args = {
 let devMode = false
 let cliMode = false
 
-// Hidden functionalities
-args.__proto__.save = () => {}
-args.__proto__.restore = () => {}
-
 
 // --- API ---
 

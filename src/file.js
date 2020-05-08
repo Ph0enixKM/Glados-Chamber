@@ -4,7 +4,8 @@ fail('Fail here', () => {throw ''})
 succeed('Succeed there', () => {})
 
 config({
-    errorQuit: false
+    errorQuit: false,
+    applause: true
 })
 
 const gt = create((s, e, t) => {
@@ -14,18 +15,18 @@ const gt = create((s, e, t) => {
     }
 })
 
-gt('Age', 12, 20)
-gt('Age', 20, 12)
+// gt('Age', 12, 20)
+// gt('Age', 20, 12)
 
-dev(false)
-console.log('\n')
+// dev(false)
+// console.log('\n')
 
-let variable = false
+// let variable = false
 
 
-log(`Value returned: ${variable}`)
-warn('Remember to run ./script.sh before testing!')
-alert('This alert will show up no matter what (even with --production)')
+// log(`Value returned: ${variable}`)
+// warn('Remember to run ./script.sh before testing!')
+// alert('This alert will show up no matter what (even with --production)')
 
-console.log('\n')
-dev(false)
+// console.log('\n')
+// dev(false)
